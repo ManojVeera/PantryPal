@@ -1,0 +1,24 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <!-- Location -->
+    <item
+        android:id="@+id/action_location"
+        android:title="Change Location"
+        android:icon="@android:drawable/ic_menu_mylocation"
+        app:showAsAction="ifRoom" />
+
+    <!-- Cart -->
+    <item
+        android:id="@+id/action_cart"
+        android:title="Cart"
+        android:icon="@android:drawable/ic_menu_share"
+        app:showAsAction="ifRoom" />
+
+    <!-- Sign Out (overflow only) -->
+    <item
+        android:id="@+id/action_sign_out"
+        android:title="Sign Out"
+        android:icon="@android:drawable/ic_lock_power_off"
+        app:showAsAction="never"/>
+</menu>

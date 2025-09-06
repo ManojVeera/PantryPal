@@ -1,0 +1,20 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme -->
+    <style name="Base.Theme.PantryPal" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Customize your light theme here -->
+    </style>
+
+    <style name="Theme.PantryPal" parent="Base.Theme.PantryPal" />
+
+    <!-- Splash screen theme -->
+    <style name="Theme.PantryPal.Splash" parent="Theme.SplashScreen">
+        <!-- Background color -->
+        <item name="windowSplashScreenBackground">#F0FDF4</item>
+
+        <!-- Your logo (only the logo image, not text) -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/logo_only</item>
+
+        <!-- After system splash, fall back to your app theme -->
+        <item name="postSplashScreenTheme">@style/Theme.PantryPal</item>
+    </style>
+</resources>
