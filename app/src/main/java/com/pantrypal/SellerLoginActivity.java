@@ -11,18 +11,18 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 
-public class LoginActivity extends AppCompatActivity {
+public class SellerLoginActivity extends AppCompatActivity {
 
     private TextInputEditText editLoginEmail, editLoginPassword;
     private MaterialButton btnLogin;
-    private TextView txtSignUpRedirect, txtSellerLoginRedirect;
+    private TextView txtSignUpRedirect;
 
     private DBHelper dbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_login);
+        setContentView(R.layout.activity_seller_login);
 
         dbHelper = new DBHelper(this);
 
@@ -30,16 +30,11 @@ public class LoginActivity extends AppCompatActivity {
         editLoginPassword = findViewById(R.id.editLoginPassword);
         btnLogin = findViewById(R.id.btnLogin);
         txtSignUpRedirect = findViewById(R.id.txtSignUpRedirect);
-        txtSellerLoginRedirect = findViewById(R.id.txtSellerLoginRedirect);
 
         btnLogin.setOnClickListener(v -> loginUser());
 
         txtSignUpRedirect.setOnClickListener(v -> {
-            startActivity(new Intent(LoginActivity.this, SignUpActivity.class));
-        });
-
-        txtSellerLoginRedirect.setOnClickListener(v -> {
-            startActivity(new Intent(LoginActivity.this, SellerLoginActivity.class));
+            startActivity(new Intent(SellerLoginActivity.this, SellerSignUpActivity.class));
         });
     }
 
@@ -58,13 +53,13 @@ public class LoginActivity extends AppCompatActivity {
 
         if (dbHelper.checkUser(email, password)) {
             String type = dbHelper.getUserType(email);
-            if ("customer".equals(type)) {
+            if ("seller".equals(type)) {
                 dbHelper.setLoggedInUser(email);
-                Toast.makeText(this, "Login Successful", Toast.LENGTH_SHORT).show();
-                startActivity(new Intent(this, HomeActivity.class));
+                Toast.makeText(this, "Seller Login Successful", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(this, SellerActivity.class));
                 finish();
             } else {
-                Toast.makeText(this, "Use seller login for seller accounts", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Not a seller account", Toast.LENGTH_SHORT).show();
             }
         } else {
             Toast.makeText(this, "Invalid credentials", Toast.LENGTH_SHORT).show();

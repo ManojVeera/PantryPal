@@ -11,18 +11,18 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 
-public class SignUpActivity extends AppCompatActivity {
+public class SellerSignUpActivity extends AppCompatActivity {
 
     private TextInputEditText editName, editEmail, editPassword, editConfirmPassword;
     private MaterialButton btnSignUp;
-    private TextView txtLoginRedirect, txtSellerSignUpRedirect;
+    private TextView txtLoginRedirect;
 
     private DBHelper dbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_sign_up);
+        setContentView(R.layout.activity_seller_sign_up);
 
         dbHelper = new DBHelper(this);
 
@@ -32,16 +32,11 @@ public class SignUpActivity extends AppCompatActivity {
         editConfirmPassword = findViewById(R.id.editConfirmPassword);
         btnSignUp = findViewById(R.id.btnSignUp);
         txtLoginRedirect = findViewById(R.id.txtLoginRedirect);
-        txtSellerSignUpRedirect = findViewById(R.id.txtSellerSignUpRedirect);
 
         btnSignUp.setOnClickListener(v -> validateAndSignUp());
 
         txtLoginRedirect.setOnClickListener(v -> {
-            startActivity(new Intent(SignUpActivity.this, LoginActivity.class));
-        });
-
-        txtSellerSignUpRedirect.setOnClickListener(v -> {
-            startActivity(new Intent(SignUpActivity.this, SellerSignUpActivity.class));
+            startActivity(new Intent(SellerSignUpActivity.this, SellerLoginActivity.class));
         });
     }
 
@@ -76,10 +71,10 @@ public class SignUpActivity extends AppCompatActivity {
             return;
         }
 
-        if (dbHelper.insertUser(name, email, password, "customer")) {
+        if (dbHelper.insertUser(name, email, password, "seller")) {
             dbHelper.setLoggedInUser(email);
-            Toast.makeText(this, "Sign Up Successful", Toast.LENGTH_SHORT).show();
-            startActivity(new Intent(this, HomeActivity.class));
+            Toast.makeText(this, "Seller Sign Up Successful", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this, SellerActivity.class));
             finish();
         } else {
             Toast.makeText(this, "Sign Up Failed", Toast.LENGTH_SHORT).show();

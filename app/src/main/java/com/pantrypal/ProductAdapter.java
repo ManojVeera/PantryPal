@@ -1,33 +1,40 @@
-package com.pantrypal; // use your package name
+package com.pantrypal;
 
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView; // ✅ Import ImageView
-import android.widget.TextView;
 import android.widget.Filter;
 import android.widget.Filterable;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-import com.bumptech.glide.Glide; // ✅ Import Glide
+
+import com.bumptech.glide.Glide;
+import com.google.android.material.button.MaterialButton;
+
 import java.util.ArrayList;
 import java.util.List;
 
-public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductViewHolder> implements Filterable { // ✅ Implement Filterable
+public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductViewHolder> implements Filterable {
 
     private List<Product> productList;
     private List<Product> productListFull;
+    private Context context; // For toast or other context needs
 
-    public ProductAdapter(List<Product> productList) {
+    public ProductAdapter(List<Product> productList, Context context) {
         this.productList = productList;
         this.productListFull = new ArrayList<>(productList);
+        this.context = context;
     }
 
     @NonNull
     @Override
     public ProductViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_product, parent, false);
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_product, parent, false);
         return new ProductViewHolder(view);
     }
 
@@ -38,11 +45,15 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
         holder.productDesc.setText(product.getDescription());
         holder.productPrice.setText("₹" + String.format("%.2f", product.getPrice()));
 
-        // ✅ Use Glide to load the image from the URL
         Glide.with(holder.itemView.getContext())
                 .load(product.getImageUrl())
-                .placeholder(R.drawable.ic_menu_gallery) // Optional: a placeholder image
+                .placeholder(R.drawable.ic_menu_gallery)
                 .into(holder.productImage);
+
+        holder.btnBuy.setOnClickListener(v -> {
+            // Handle buy action, e.g., add to cart
+            Toast.makeText(context, "Added " + product.getName() + " to cart", Toast.LENGTH_SHORT).show();
+        });
     }
 
     @Override
@@ -50,21 +61,21 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
         return productList.size();
     }
 
-    // ✅ Add the ViewHolder class
     static class ProductViewHolder extends RecyclerView.ViewHolder {
-        ImageView productImage; // ✅ Add ImageView
+        ImageView productImage;
         TextView productName, productDesc, productPrice;
+        MaterialButton btnBuy;
 
         public ProductViewHolder(@NonNull View itemView) {
             super(itemView);
-            productImage = itemView.findViewById(R.id.productImage); // ✅ Find ImageView
+            productImage = itemView.findViewById(R.id.productImage);
             productName = itemView.findViewById(R.id.productName);
             productDesc = itemView.findViewById(R.id.productDesc);
             productPrice = itemView.findViewById(R.id.productPrice);
+            btnBuy = itemView.findViewById(R.id.btnBuy);
         }
     }
 
-    // ✅ Add the filter logic
     @Override
     public Filter getFilter() {
         return productFilter;
@@ -78,9 +89,9 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
                 filteredList.addAll(productListFull);
             } else {
                 String filterPattern = constraint.toString().toLowerCase().trim();
-                for (Product product : productListFull) {
-                    if (product.getName().toLowerCase().contains(filterPattern)) {
-                        filteredList.add(product);
+                for (Product item : productListFull) {
+                    if (item.getName().toLowerCase().contains(filterPattern)) {
+                        filteredList.add(item);
                     }
                 }
             }
@@ -96,13 +107,4 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ProductV
             notifyDataSetChanged();
         }
     };
-
-    // Helper method to update the adapter's data, including the full list for filtering
-    public void updateProducts(List<Product> newProducts) {
-        productList.clear();
-        productList.addAll(newProducts);
-        productListFull.clear();
-        productListFull.addAll(newProducts);
-        notifyDataSetChanged();
-    }
 }

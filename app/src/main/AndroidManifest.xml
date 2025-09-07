@@ -22,7 +22,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
+        <activity
+            android:name=".SellerLoginActivity"
+            android:exported="true"/>
+        <activity
+            android:name=".SellerSignUpActivity"
+            android:exported="true"/>
+        <activity
+            android:name=".SellerActivity"
+            android:exported="true"/>
         <activity
             android:name=".HomeActivity"
             android:exported="true" />

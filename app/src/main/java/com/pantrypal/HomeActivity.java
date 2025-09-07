@@ -32,16 +32,8 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-
-// Imports for Networking
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 public class HomeActivity extends AppCompatActivity {
 
@@ -59,7 +51,7 @@ public class HomeActivity extends AppCompatActivity {
     private AlertDialog pincodeDialog;
     private ActivityResultLauncher<String> requestPermissionLauncher;
 
-    private static final String TAG = "HomeActivity"; // For logging
+    private static final String TAG = "HomeActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -116,14 +108,12 @@ public class HomeActivity extends AppCompatActivity {
 
         setupCategoryRecycler();
 
-        // Setup the recycler view and then fetch the data from the API
         setupPopularRecycler();
-        fetchProductsFromApi();
+        fetchProductsFromDb();
 
         bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_home) {
-                // Already on home screen
                 return true;
             } else if (id == R.id.nav_categories) {
                 Toast.makeText(this, "Categories Clicked", Toast.LENGTH_SHORT).show();
@@ -172,8 +162,7 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void requestLocationPermission() {
-        if (ContextCompat.checkSelfPermission(
-                this, Manifest.permission.ACCESS_FINE_LOCATION) ==
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
                 PackageManager.PERMISSION_GRANTED) {
             getCurrentLocation();
         } else {
@@ -224,9 +213,9 @@ public class HomeActivity extends AppCompatActivity {
 
     private void checkAndShowDeliveryStatus(String pincode) {
         if (isDeliverable(pincode)) {
-            Toast.makeText(HomeActivity.this, "Great! Delivery is available at " + pincode, Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Great! Delivery is available at " + pincode, Toast.LENGTH_SHORT).show();
         } else {
-            Toast.makeText(HomeActivity.this, "Sorry, we do not deliver to " + pincode, Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Sorry, we do not deliver to " + pincode, Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -235,54 +224,19 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void setupCategoryRecycler() {
-        // These categories match the ones from the Fake Store API
-        List<String> categories = new ArrayList<>();
-        categories.add("Electronics");
-        categories.add("Jewelery");
-        categories.add("Men's Clothing");
-        categories.add("Women's Clothing");
-
+        List<String> categories = dbHelper.getCategories();
         categoryAdapter = new CategoryAdapter(categories);
-        LinearLayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
-        categoryRecycler.setLayoutManager(layoutManager);
+        categoryRecycler.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
         categoryRecycler.setAdapter(categoryAdapter);
     }
 
-    // MODIFIED: This method now only prepares the RecyclerView and empty adapter.
     private void setupPopularRecycler() {
         popularRecycler.setLayoutManager(new GridLayoutManager(this, 2));
-        // Initialize the adapter with an empty list. Data will be added from the API call.
-        productAdapter = new ProductAdapter(new ArrayList<>());
+        productAdapter = new ProductAdapter(dbHelper.getAllProducts(), this); // Pass context if needed for buy button
         popularRecycler.setAdapter(productAdapter);
     }
 
-    // NEW: This method uses Retrofit to fetch products from the API.
-    private void fetchProductsFromApi() {
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("https://fakestoreapi.com/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-
-        ApiService apiService = retrofit.create(ApiService.class);
-
-        Call<List<Product>> call = apiService.getProducts();
-        call.enqueue(new Callback<List<Product>>() {
-            @Override
-            public void onResponse(Call<List<Product>> call, Response<List<Product>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    // When data is successfully fetched, update the adapter
-                    productAdapter.updateProducts(response.body());
-                } else {
-                    Toast.makeText(HomeActivity.this, "Failed to retrieve products.", Toast.LENGTH_SHORT).show();
-                }
-            }
-
-            @Override
-            public void onFailure(Call<List<Product>> call, Throwable t) {
-                // Handle what happens when the network call fails
-                Toast.makeText(HomeActivity.this, "Network Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
-                Log.e(TAG, "onFailure: Network request failed.", t);
-            }
-        });
+    private void fetchProductsFromDb() {
+        // Already fetched in setup
     }
 }
