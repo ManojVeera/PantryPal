@@ -56,30 +56,32 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.CartViewHolder
                 .into(holder.productImage);
 
         // ✅ Increment
+        // Increment
         holder.btnIncrement.setOnClickListener(v -> {
             int newQuantity = item.getQuantity() + 1;
             item.setQuantity(newQuantity);
-            dbHelper.updateCartItemQuantity(item.getCartId(), newQuantity);
+            dbHelper.updateCartItemQuantity(item.getUserEmail(), item.getProductId(), newQuantity); // ✅ fixed
             listener.onQuantityChanged(item, newQuantity);
             notifyItemChanged(position);
         });
 
-        // ✅ Decrement
+// Decrement
         holder.btnDecrement.setOnClickListener(v -> {
             if (item.getQuantity() > 1) {
                 int newQuantity = item.getQuantity() - 1;
                 item.setQuantity(newQuantity);
-                dbHelper.updateCartItemQuantity(item.getCartId(), newQuantity);
+                dbHelper.updateCartItemQuantity(item.getUserEmail(), item.getProductId(), newQuantity); // ✅ fixed
                 listener.onQuantityChanged(item, newQuantity);
                 notifyItemChanged(position);
             }
         });
 
-        // ✅ Remove
+// Remove
         holder.btnRemove.setOnClickListener(v -> {
-            dbHelper.removeCartItem(item.getCartId());
+            dbHelper.removeCartItem(item.getUserEmail(), item.getProductId()); // ✅ fixed
             listener.onItemRemoved(item);
         });
+
     }
 
     @Override

@@ -7,6 +7,7 @@ public class CartItem {
     private String productName;
     private double productPrice;
     private String imageUrl;
+    private String userEmail;
 
     // Getters and Setters for all fields
     public int getCartId() { return cartId; }
@@ -21,4 +22,6 @@ public class CartItem {
     public void setProductPrice(double productPrice) { this.productPrice = productPrice; }
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+    public String getUserEmail() { return userEmail; } // ✅ add getter
+    public void setUserEmail(String userEmail) { this.userEmail = userEmail; }
 }
