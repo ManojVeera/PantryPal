@@ -7,25 +7,28 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
 
-    private DBHelper dbHelper;
+    // --- MODIFIED: Use SessionManager instead of DBHelper ---
+    private SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        dbHelper = new DBHelper(this);
+        // --- MODIFIED: Initialize SessionManager ---
+        sessionManager = new SessionManager(this);
 
-        String loggedInEmail = dbHelper.getLoggedInUser();
-        if (loggedInEmail != null) {
-            String type = dbHelper.getUserType(loggedInEmail);
-            if ("seller".equals(type)) {
+        // --- MODIFIED: All logic now uses SessionManager ---
+        if (sessionManager.isLoggedIn()) {
+            String userType = sessionManager.getUserType();
+            if ("seller".equals(userType)) {
                 startActivity(new Intent(this, SellerActivity.class));
             } else {
                 startActivity(new Intent(this, HomeActivity.class));
             }
         } else {
+            // If no one is logged in, default to the customer sign-up/login flow.
             startActivity(new Intent(this, SignUpActivity.class));
         }
-        finish();
+        finish(); // Finish this activity so the user can't navigate back to it.
     }
 }

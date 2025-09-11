@@ -1,35 +1,47 @@
-package com.pantrypal; // change to your package name
+package com.pantrypal;
 
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-
 import java.util.List;
 
 public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.CategoryViewHolder> {
 
-    private List<String> categoryList;
+    private final List<String> categoryList;
+    private final OnCategoryClickListener listener;
+    private final int layoutId; // NEW
 
-    public CategoryAdapter(List<String> categoryList) {
+    public interface OnCategoryClickListener {
+        void onCategoryClick(String category);
+    }
+
+    public CategoryAdapter(List<String> categoryList, int layoutId, OnCategoryClickListener listener) {
         this.categoryList = categoryList;
+        this.listener = listener;
+        this.layoutId = layoutId;
     }
 
     @NonNull
     @Override
     public CategoryViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_category, parent, false);
+                .inflate(layoutId, parent, false);
         return new CategoryViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull CategoryViewHolder holder, int position) {
         String category = categoryList.get(position);
-        holder.categoryName.setText(category);
+
+        // Works for both item_category and item_category_grid
+        if (holder.categoryName != null) {
+            holder.categoryName.setText(category);
+        }
+
+        holder.itemView.setOnClickListener(v -> listener.onCategoryClick(category));
     }
 
     @Override
@@ -39,10 +51,12 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Catego
 
     static class CategoryViewHolder extends RecyclerView.ViewHolder {
         TextView categoryName;
-
         public CategoryViewHolder(@NonNull View itemView) {
             super(itemView);
             categoryName = itemView.findViewById(R.id.categoryName);
+            if (categoryName == null) {
+                categoryName = itemView.findViewById(R.id.categoryNameGrid); // fallback for grid
+            }
         }
     }
 }

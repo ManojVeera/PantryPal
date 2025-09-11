@@ -15,8 +15,8 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
@@ -24,34 +24,34 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.textfield.TextInputEditText;
-
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public class HomeActivity extends AppCompatActivity {
+// --- FIXED: Implement the new listener interfaces ---
+public class HomeActivity extends AppCompatActivity implements CategoryAdapter.OnCategoryClickListener, ProductAdapter.FilterListener {
 
     private MaterialToolbar topAppBar;
     private TextInputEditText searchBar;
     private RecyclerView categoryRecycler, popularRecycler;
     private BottomNavigationView bottomNav;
+    private TextView emptyProductText;
 
     private CategoryAdapter categoryAdapter;
     private ProductAdapter productAdapter;
 
     private DBHelper dbHelper;
+    private SessionManager sessionManager;
 
     private FusedLocationProviderClient fusedLocationClient;
     private AlertDialog pincodeDialog;
     private ActivityResultLauncher<String> requestPermissionLauncher;
-
-    private static final String TAG = "HomeActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,15 +59,12 @@ public class HomeActivity extends AppCompatActivity {
         setContentView(R.layout.activity_home);
 
         dbHelper = new DBHelper(this);
+        sessionManager = new SessionManager(this);
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-
         requestPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
-            if (isGranted) {
-                getCurrentLocation();
-            } else {
-                Toast.makeText(this, "Location permission denied. Cannot detect location.", Toast.LENGTH_LONG).show();
-            }
+            if (isGranted) { getCurrentLocation(); }
+            else { Toast.makeText(this, "Location permission denied.", Toast.LENGTH_LONG).show(); }
         });
 
         topAppBar = findViewById(R.id.topAppBar);
@@ -75,6 +72,22 @@ public class HomeActivity extends AppCompatActivity {
         categoryRecycler = findViewById(R.id.categoryRecycler);
         popularRecycler = findViewById(R.id.popularRecycler);
         bottomNav = findViewById(R.id.bottomNav);
+        bottomNav.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.nav_home) {
+                // Already in home → no action
+                return true;
+            } else if (id == R.id.nav_categories) {
+                startActivity(new Intent(this, CategoriesActivity.class));
+                return true;
+            } else if (id == R.id.nav_profile) {
+                startActivity(new Intent(this, ProfileActivity.class));
+                return true;
+            }
+            return false;
+        });
+
+        emptyProductText = findViewById(R.id.emptyProductText);
 
         topAppBar.setOnMenuItemClickListener(item -> {
             int id = item.getItemId();
@@ -82,7 +95,7 @@ public class HomeActivity extends AppCompatActivity {
                 showPincodeDialog();
                 return true;
             } else if (id == R.id.action_cart) {
-                Toast.makeText(this, "Cart clicked", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(this, CartActivity.class));
                 return true;
             } else if (id == R.id.action_sign_out) {
                 signOutUser();
@@ -94,58 +107,82 @@ public class HomeActivity extends AppCompatActivity {
         searchBar.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 if (productAdapter != null) {
                     productAdapter.getFilter().filter(s);
                 }
             }
-
             @Override
             public void afterTextChanged(Editable s) {}
         });
 
         setupCategoryRecycler();
-
         setupPopularRecycler();
-        fetchProductsFromDb();
-
-        bottomNav.setOnItemSelectedListener(item -> {
-            int id = item.getItemId();
-            if (id == R.id.nav_home) {
-                return true;
-            } else if (id == R.id.nav_categories) {
-                Toast.makeText(this, "Categories Clicked", Toast.LENGTH_SHORT).show();
-                return true;
-            } else if (id == R.id.nav_profile) {
-                Toast.makeText(this, "Profile Clicked", Toast.LENGTH_SHORT).show();
-                return true;
-            }
-            return false;
-        });
     }
 
     private void signOutUser() {
-        dbHelper.clearLoggedInUser();
+        sessionManager.logoutUser();
+        // Go to customer login after logout
         Intent intent = new Intent(HomeActivity.this, LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
     }
 
+    private void setupCategoryRecycler() {
+        categoryRecycler.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        List<String> categories = dbHelper.getCategories();
+        List<String> displayCategories = new ArrayList<>();
+        displayCategories.add("All");
+        displayCategories.addAll(categories);
+
+        // --- FIXED: Provide the listener 'this' when creating the adapter ---
+        categoryAdapter = new CategoryAdapter(displayCategories, R.layout.item_category, this);
+        categoryRecycler.setAdapter(categoryAdapter);
+
+    }
+
+    private void setupPopularRecycler() {
+        popularRecycler.setLayoutManager(new GridLayoutManager(this, 2));
+        // --- FIXED: Provide the listener 'this' when creating the adapter ---
+        productAdapter = new ProductAdapter(dbHelper.getAllProducts(), this, this);
+        popularRecycler.setAdapter(productAdapter);
+        onFilterComplete(); // Initial check for empty state
+    }
+
+    // --- NEW: This method is called when a category is clicked ---
+    @Override
+    public void onCategoryClick(String category) {
+        if ("All".equals(category)) {
+            productAdapter.updateList(dbHelper.getAllProducts());
+        } else {
+            productAdapter.updateList(dbHelper.getProductsByCategory(category));
+        }
+    }
+
+    // --- NEW: This method is called after a search or filter is complete ---
+    @Override
+    public void onFilterComplete() {
+        if (productAdapter.getItemCount() == 0) {
+            emptyProductText.setVisibility(View.VISIBLE);
+            popularRecycler.setVisibility(View.GONE);
+        } else {
+            emptyProductText.setVisibility(View.GONE);
+            popularRecycler.setVisibility(View.VISIBLE);
+        }
+    }
+
+    // --- Location methods below (unchanged) ---
     private void showPincodeDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         LayoutInflater inflater = this.getLayoutInflater();
         View dialogView = inflater.inflate(R.layout.dialog_pincode_check, null);
         builder.setView(dialogView);
-
         final TextInputEditText pincodeInput = dialogView.findViewById(R.id.pincodeInput);
         Button checkDeliveryBtn = dialogView.findViewById(R.id.checkDeliveryBtn);
         Button detectLocationBtn = dialogView.findViewById(R.id.detectLocationBtn);
-
         pincodeDialog = builder.create();
-
         checkDeliveryBtn.setOnClickListener(v -> {
             String pincode = pincodeInput.getText().toString().trim();
             if (pincode.isEmpty() || pincode.length() != 6) {
@@ -155,15 +192,12 @@ public class HomeActivity extends AppCompatActivity {
             checkAndShowDeliveryStatus(pincode);
             pincodeDialog.dismiss();
         });
-
         detectLocationBtn.setOnClickListener(v -> requestLocationPermission());
-
         pincodeDialog.show();
     }
 
     private void requestLocationPermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
-                PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             getCurrentLocation();
         } else {
             requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
@@ -173,18 +207,15 @@ public class HomeActivity extends AppCompatActivity {
     @SuppressLint("MissingPermission")
     private void getCurrentLocation() {
         Toast.makeText(this, "Detecting location...", Toast.LENGTH_SHORT).show();
-        fusedLocationClient.getLastLocation()
-                .addOnSuccessListener(this, location -> {
-                    if (location != null) {
-                        getPincodeFromLocation(location);
-                    } else {
-                        Toast.makeText(this, "Could not get location. Make sure location is enabled.", Toast.LENGTH_LONG).show();
-                    }
-                })
-                .addOnFailureListener(this, e -> {
-                    Toast.makeText(this, "Failed to get location: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    Log.e("LocationError", "Failed to get location.", e);
-                });
+        fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
+            if (location != null) {
+                getPincodeFromLocation(location);
+            } else {
+                Toast.makeText(this, "Could not get location. Make sure location is enabled.", Toast.LENGTH_LONG).show();
+            }
+        }).addOnFailureListener(this, e -> {
+            Toast.makeText(this, "Failed to get location: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        });
     }
 
     private void getPincodeFromLocation(Location location) {
@@ -203,7 +234,6 @@ public class HomeActivity extends AppCompatActivity {
             }
         } catch (IOException e) {
             Log.e("GeocoderError", "Service not available", e);
-            Toast.makeText(this, "Geocoder service not available.", Toast.LENGTH_LONG).show();
         } finally {
             if (pincodeDialog != null && pincodeDialog.isShowing()) {
                 pincodeDialog.dismiss();
@@ -219,24 +249,6 @@ public class HomeActivity extends AppCompatActivity {
         }
     }
 
-    private boolean isDeliverable(String pincode) {
-        return pincode.startsWith("6");
-    }
-
-    private void setupCategoryRecycler() {
-        List<String> categories = dbHelper.getCategories();
-        categoryAdapter = new CategoryAdapter(categories);
-        categoryRecycler.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        categoryRecycler.setAdapter(categoryAdapter);
-    }
-
-    private void setupPopularRecycler() {
-        popularRecycler.setLayoutManager(new GridLayoutManager(this, 2));
-        productAdapter = new ProductAdapter(dbHelper.getAllProducts(), this); // Pass context if needed for buy button
-        popularRecycler.setAdapter(productAdapter);
-    }
-
-    private void fetchProductsFromDb() {
-        // Already fetched in setup
-    }
+    private boolean isDeliverable(String pincode) { return pincode.startsWith("6"); }
 }
+

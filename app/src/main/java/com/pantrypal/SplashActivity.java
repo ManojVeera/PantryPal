@@ -1,26 +1,26 @@
+// In SplashActivity.java
 package com.pantrypal;
 
 import android.content.Intent;
 import android.os.Bundle;
-
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.splashscreen.SplashScreen;
 
 public class SplashActivity extends AppCompatActivity {
 
-    private DBHelper dbHelper;
+    private SessionManager sessionManager; // --- NEW
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
 
-        dbHelper = new DBHelper(this);
+        sessionManager = new SessionManager(this); // --- NEW
 
-        String loggedInEmail = dbHelper.getLoggedInUser();
-        if (loggedInEmail != null) {
-            String type = dbHelper.getUserType(loggedInEmail);
-            if ("seller".equals(type)) {
+        // --- MODIFIED: All logic now uses SessionManager ---
+        if (sessionManager.isLoggedIn()) {
+            String userType = sessionManager.getUserType();
+            if ("seller".equals(userType)) {
                 startActivity(new Intent(this, SellerActivity.class));
             } else {
                 startActivity(new Intent(this, HomeActivity.class));

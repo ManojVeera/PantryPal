@@ -18,6 +18,8 @@ public class LoginActivity extends AppCompatActivity {
     private TextView txtSignUpRedirect, txtSellerLoginRedirect;
 
     private DBHelper dbHelper;
+    // --- NEW: Add SessionManager ---
+    private SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,6 +27,8 @@ public class LoginActivity extends AppCompatActivity {
         setContentView(R.layout.activity_login);
 
         dbHelper = new DBHelper(this);
+        // --- NEW: Initialize SessionManager ---
+        sessionManager = new SessionManager(this);
 
         editLoginEmail = findViewById(R.id.editLoginEmail);
         editLoginPassword = findViewById(R.id.editLoginPassword);
@@ -35,7 +39,10 @@ public class LoginActivity extends AppCompatActivity {
         btnLogin.setOnClickListener(v -> loginUser());
 
         txtSignUpRedirect.setOnClickListener(v -> {
-            startActivity(new Intent(LoginActivity.this, SignUpActivity.class));
+            // Updated to use the combined SignUpActivity for customers
+            Intent intent = new Intent(LoginActivity.this, SignUpActivity.class);
+            intent.putExtra("USER_TYPE", "customer");
+            startActivity(intent);
         });
 
         txtSellerLoginRedirect.setOnClickListener(v -> {
@@ -47,24 +54,24 @@ public class LoginActivity extends AppCompatActivity {
         String email = editLoginEmail.getText().toString().trim();
         String password = editLoginPassword.getText().toString().trim();
 
-        if (TextUtils.isEmpty(email)) {
-            editLoginEmail.setError("Enter your email");
-            return;
-        }
-        if (TextUtils.isEmpty(password)) {
-            editLoginPassword.setError("Enter your password");
+        if (TextUtils.isEmpty(email) || TextUtils.isEmpty(password)) {
+            Toast.makeText(this, "Please enter email and password", Toast.LENGTH_SHORT).show();
             return;
         }
 
         if (dbHelper.checkUser(email, password)) {
             String type = dbHelper.getUserType(email);
             if ("customer".equals(type)) {
-                dbHelper.setLoggedInUser(email);
+                // --- FIXED: Use SessionManager to create the login session ---
+                sessionManager.createLoginSession(email, "customer");
+
                 Toast.makeText(this, "Login Successful", Toast.LENGTH_SHORT).show();
-                startActivity(new Intent(this, HomeActivity.class));
+                Intent intent = new Intent(this, HomeActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
                 finish();
             } else {
-                Toast.makeText(this, "Use seller login for seller accounts", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "This is a seller account. Please use the seller login.", Toast.LENGTH_LONG).show();
             }
         } else {
             Toast.makeText(this, "Invalid credentials", Toast.LENGTH_SHORT).show();
