@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
-
-</PreferenceScreen>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">static.vecteezy.com</domain>
+        <domain includeSubdomains="true">images.unsplash.com</domain>
+    </domain-config>
+</network-security-config>

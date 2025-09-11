@@ -3,6 +3,7 @@ package com.pantrypal;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -18,6 +19,9 @@ public class SignUpActivity extends AppCompatActivity {
     private TextView txtLoginRedirect, txtSellerSignUpRedirect;
 
     private DBHelper dbHelper;
+    // --- NEW: Add SessionManager ---
+    private SessionManager sessionManager;
+    private String userType;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,6 +29,8 @@ public class SignUpActivity extends AppCompatActivity {
         setContentView(R.layout.activity_sign_up);
 
         dbHelper = new DBHelper(this);
+        // --- NEW: Initialize SessionManager ---
+        sessionManager = new SessionManager(this);
 
         editName = findViewById(R.id.editName);
         editEmail = findViewById(R.id.editEmail);
@@ -34,14 +40,33 @@ public class SignUpActivity extends AppCompatActivity {
         txtLoginRedirect = findViewById(R.id.txtLoginRedirect);
         txtSellerSignUpRedirect = findViewById(R.id.txtSellerSignUpRedirect);
 
+        userType = getIntent().getStringExtra("USER_TYPE");
+        if (userType == null) {
+            userType = "customer";
+        }
+
+        TextView pageTitle = findViewById(R.id.txtTitle);
+        if ("seller".equals(userType)) {
+            pageTitle.setText("Seller Sign Up");
+            txtSellerSignUpRedirect.setVisibility(View.GONE);
+        } else {
+            pageTitle.setText("Create Account");
+        }
+
         btnSignUp.setOnClickListener(v -> validateAndSignUp());
 
         txtLoginRedirect.setOnClickListener(v -> {
-            startActivity(new Intent(SignUpActivity.this, LoginActivity.class));
+            if ("seller".equals(userType)) {
+                startActivity(new Intent(SignUpActivity.this, SellerLoginActivity.class));
+            } else {
+                startActivity(new Intent(SignUpActivity.this, LoginActivity.class));
+            }
         });
 
         txtSellerSignUpRedirect.setOnClickListener(v -> {
-            startActivity(new Intent(SignUpActivity.this, SellerSignUpActivity.class));
+            Intent intent = new Intent(SignUpActivity.this, SignUpActivity.class);
+            intent.putExtra("USER_TYPE", "seller");
+            startActivity(intent);
         });
     }
 
@@ -76,10 +101,20 @@ public class SignUpActivity extends AppCompatActivity {
             return;
         }
 
-        if (dbHelper.insertUser(name, email, password, "customer")) {
-            dbHelper.setLoggedInUser(email);
+        if (dbHelper.insertUser(name, email, password, userType)) {
+            // --- FIXED: Use SessionManager to create the login session ---
+            sessionManager.createLoginSession(email, userType);
+
             Toast.makeText(this, "Sign Up Successful", Toast.LENGTH_SHORT).show();
-            startActivity(new Intent(this, HomeActivity.class));
+
+            Intent intent;
+            if ("seller".equals(userType)) {
+                intent = new Intent(this, SellerActivity.class);
+            } else {
+                intent = new Intent(this, HomeActivity.class);
+            }
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
             finish();
         } else {
             Toast.makeText(this, "Sign Up Failed", Toast.LENGTH_SHORT).show();
